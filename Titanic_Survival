@@ -1,0 +1,134 @@
+import pandas as pd
+from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import GridSearchCV
+
+# Load the Titanic dataset
+titanic_data = pd.read_csv('C:\\Users\\SHAUNAK MIRAJGAONKAR\\Desktop\\train.csv')
+
+# Define features and target variable
+X = titanic_data.drop('Survived', axis=1)
+y = titanic_data['Survived']
+
+# Define numeric and categorical features
+numeric_features = X.select_dtypes(include=['number']).columns
+categorical_features = X.select_dtypes(include=['object']).columns
+
+# Create transformers for numeric and categorical features
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Create a column transformer to apply transformers to different feature types
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_features),
+        ('cat', categorical_transformer, categorical_features)
+    ])
+
+# Create a stratified split
+split = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+for train_indices, test_indices in split.split(titanic_data, titanic_data[["Survived", 'Pclass', 'Sex']]):
+    strat_train_set = titanic_data.loc[train_indices]
+    strat_test_set = titanic_data.loc[test_indices]
+
+# Define a custom transformer (if needed)
+class FeatureEncoder:
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        # Your custom transformation logic here
+        return X
+
+# Add the custom transformer to the pipeline
+pipeline = Pipeline([
+    ('preprocessor', preprocessor),
+    ('feature_encoder', FeatureEncoder()),  # Replace with your custom transformer
+])
+
+# Fit and transform the training set
+strat_train_set_transformed = pipeline.fit_transform(strat_train_set)
+
+# Display the transformed dataset information
+print(strat_train_set_transformed)
+
+# Use the transformed dataset and target variable for the model
+X_data = strat_train_set_transformed
+y_data = strat_train_set['Survived']  # Use the target variable corresponding to the transformed dataset
+
+# Define the classifier and parameter grid for GridSearchCV
+clf = RandomForestClassifier()
+param_grid = [
+    {"n_estimators": [10, 100, 200, 500], "max_depth": [None, 5, 10], "min_samples_split": [2, 3, 4]}
+]
+
+# Perform grid search
+grid_search = GridSearchCV(clf, param_grid, cv=3, scoring="accuracy", return_train_score=True)
+grid_search.fit(X_data, y_data)
+
+# Print the best estimator from the grid search
+final_clf = grid_search.best_estimator_
+print(final_clf)
+
+# Transform the test set using the same pipeline
+X_test = pipeline.transform(strat_test_set.drop('Survived', axis=1))
+y_test = strat_test_set['Survived'].to_numpy()
+
+# Use the best estimator to make predictions on the test set
+y_pred = final_clf.predict(X_test)
+
+final_data = pipeline.fit_transform(titanic_data)
+print(final_data)
+
+X_final = final_data.drop(['Survived'], axis=1)
+y_final = final_data['Survived']
+
+scaler = StandardScaler()
+X_data_final =scaler.fit_transform(X_final)
+y_data_final = y_final.to_numpy
+
+prod_clf = RandomForestClassifier()
+param_grid = [
+    {"n_estimators": [10, 100, 200, 500], "max_depth": [None, 5, 10], "min_samples_split": [2, 3, 4]}
+]
+
+# Perform grid search
+grid_search = GridSearchCV(prod_clf, param_grid, cv=3, scoring="accuracy", return_train_score=True)
+grid_search.fit(X_data_final, y_data_final)
+
+GridSearchCV(cv=3, estimator=RandomForestClassifier(),
+param_grid=[{'max_depth':[None,5,10],
+'n_estimators': [10,100,200,500]}],
+return_train_score=True,scoring='accuracy')
+
+prod_final_clf=grid_search.best_estimator_
+titanic_test_data = pd.read_csv('C:\\Users\\SHAUNAK MIRAJGAONKAR\\Desktop\\test.csv')
+final_test_data=pipeline.fit.transform(titanic_test_data)
+RandomForestClassifier(max_depth=5,min_samples_split=3)
+
+print(final_test_data)
+
+X_final_test = final_test_data
+X_final_test = X_final_test.fillna(method_data="fill")
+
+scaler = StandardScaler()
+X_data_final_test = scaler.fit_transform(X_final_test)
+
+predictions = prod_final_clf.predict(X_data_final_test)
+print(predictions)
+
+final_df=pd.DataFrame(titanic_test_data['PassengerId'])
+final_df['Survived'] = predictions
+
+final_df
