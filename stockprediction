@@ -15,6 +15,7 @@ except Exception as e:
     print(f"Failed download for {company}: {e}")
     exit()
 
+
 if data.empty:
     print(f"No data available for {company}.")
     exit()
